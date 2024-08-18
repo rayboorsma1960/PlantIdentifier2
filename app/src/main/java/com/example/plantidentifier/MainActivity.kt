@@ -4,6 +4,7 @@ import android.Manifest
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -42,9 +43,14 @@ class MainActivity : ComponentActivity() {
                             Manifest.permission.READ_EXTERNAL_STORAGE
                     )
 
+                    LaunchedEffect(Unit) {
+                        Log.d("PlantIdentifier", "Initial permission state: ${permissionState.status}")
+                    }
+
                     val launcher = rememberLauncherForActivityResult(
                         contract = ActivityResultContracts.GetContent()
                     ) { uri: Uri? ->
+                        Log.d("PlantIdentifier", "Image selected: $uri")
                         imageUri = uri
                         if (uri != null) {
                             identifyPlant(uri)
@@ -69,14 +75,18 @@ class MainActivity : ComponentActivity() {
 
                         Button(
                             onClick = {
+                                Log.d("PlantIdentifier", "Upload button clicked")
                                 when {
                                     permissionState.status.isGranted -> {
+                                        Log.d("PlantIdentifier", "Permission is granted, launching image picker")
                                         launcher.launch("image/*")
                                     }
                                     permissionState.status.shouldShowRationale -> {
+                                        Log.d("PlantIdentifier", "Should show permission rationale")
                                         // Show rationale if needed
                                     }
                                     else -> {
+                                        Log.d("PlantIdentifier", "Requesting permission")
                                         permissionState.launchPermissionRequest()
                                     }
                                 }
@@ -98,6 +108,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun identifyPlant(imageUri: Uri) {
+        Log.d("PlantIdentifier", "Identifying plant from URI: $imageUri")
         // TODO: Implement plant identification logic here
         Toast.makeText(this, "Plant identification will be implemented here.", Toast.LENGTH_SHORT).show()
     }
