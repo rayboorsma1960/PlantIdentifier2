@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Plant Identifier</string>
+    <string name="plant_identification_placeholder">Plant identification will be implemented here.</string>
+</resources>
