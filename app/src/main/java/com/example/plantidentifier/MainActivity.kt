@@ -1,11 +1,11 @@
 package com.example.plantidentifier
 
 import android.Manifest
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -22,11 +22,24 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.shouldShowRationale
 import com.example.plantidentifier.ui.theme.PlantIdentifierTheme
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.content
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private lateinit var generativeModel: GenerativeModel
+
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Gemini API
+        generativeModel = GenerativeModel(
+            modelName = "gemini-pro-vision",
+            apiKey = "AIzaSyAOApzWL2G8uTtaY9z4rMHeIx6Jk7ZYx8Y" // Replace with your actual API key
+        )
+
         setContent {
             PlantIdentifierTheme {
                 Surface(
@@ -34,7 +47,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     var imageUri by remember { mutableStateOf<Uri?>(null) }
-                    val identificationResult by remember { mutableStateOf("") }
+                    var identificationResult by remember { mutableStateOf("") }
 
                     val permissionState = rememberPermissionState(
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
@@ -53,7 +66,9 @@ class MainActivity : ComponentActivity() {
                         Log.d("PlantIdentifier", "Image selected: $uri")
                         imageUri = uri
                         if (uri != null) {
-                            identifyPlant(uri)
+                            identifyPlant(uri) { result ->
+                                identificationResult = result
+                            }
                         }
                     }
 
@@ -107,9 +122,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun identifyPlant(imageUri: Uri) {
+    private fun identifyPlant(imageUri: Uri, onResult: (String) -> Unit) {
         Log.d("PlantIdentifier", "Identifying plant from URI: $imageUri")
-        // TODO: Implement plant identification logic here
-        Toast.makeText(this, "Plant identification will be implemented here.", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                val bitmap = contentResolver.openInputStream(imageUri)?.use {
+                    BitmapFactory.decodeStream(it)
+                }
+
+                bitmap?.let {
+                    val prompt = "Identify this plant and provide its name and some important information about it."
+                    val response = generativeModel.generateContent(
+                        content {
+                            image(bitmap)
+                            text(prompt)
+                        }
+                    )
+
+                    onResult(response.text ?: "Unable to identify the plant.")
+                }
+            } catch (e: Exception) {
+                onResult("Error: ${e.message}")
+            }
+        }
     }
 }

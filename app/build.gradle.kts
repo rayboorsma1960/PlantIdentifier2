@@ -67,4 +67,5 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.accompanist.permissions)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(libs.google.generativeai)
 }
